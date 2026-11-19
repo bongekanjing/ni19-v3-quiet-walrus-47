@@ -12,7 +12,7 @@ from PIL import Image
 root = pathlib.Path(sys.argv[1])
 im = Image.open('/tmp/poster_raw.png').convert('RGB')
 if im.size != (1024, 1024):
-    im = im.crop((0, 0, 1024, 1024))
+    sys.exit('screenshot is %sx%s, expected 1024x1024: the page must fit the square' % im.size)
 out = root / 'entry.png'
 im.save(out, 'PNG', optimize=True)
 print('entry.png', out.stat().st_size, 'bytes', im.size)

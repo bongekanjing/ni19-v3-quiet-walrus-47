@@ -1,297 +1,503 @@
 #!/usr/bin/env python3
-"""Build build/poster.html - a newspaper front page for 19 November 2026.
+"""Build build/poster.html: a 1024x1024 newspaper front page.
 
-Story data lives inline below, and so does the coastline: COAST is Natural
-Earth 1:110m land, reduced to 30 rings and 606 points with Douglas-Peucker,
-carried as "lon,lat lon,lat ..." groups split by ";". Nothing is fetched at
-build time.
-
-Counts are stated on the page and are true: 3 leads + 36 briefs = 39 stories,
-plus 8 market quotes.
+Data lives here; the page is written deterministically (no timestamps, no
+randomness, no dict/set ordering). All artwork is inline SVG geometry.
 """
 
 import html
+import math
 import pathlib
 
-PAPER = "THE WORLD TODAY"
-DATE_LINE = "THURSDAY, 19 NOVEMBER 2026"
-STRAP = "Summits, strikes and storms"
+HERE = pathlib.Path(__file__).resolve().parent
+
+DATELINE = "Thursday 19 November 2026"
+
+DECK_ITEMS = [
+    "Three presidents in Shenzhen",
+    "A drone war in the Gulf",
+    "200,000 flee a cyclone",
+]
+
+REGIONS = [
+    ("AMERICAS", "#1d4e8f"),
+    ("EUROPE", "#157a4a"),
+    ("AFRICA", "#6b2d8e"),
+    ("ASIA", "#1d5468"),
+    ("MIDEAST", "#8f2a1f"),
+    ("OCEANIA", "#2c3b4a"),
+    ("WORLD", "#12203f"),
+]
+
+REGION_OF = {
+    "UNITED STATES": "AMERICAS",
+    "VENEZUELA": "AMERICAS",
+    "MEXICO": "AMERICAS",
+    "HAITI": "AMERICAS",
+    "EUROPE": "EUROPE",
+    "UNITED KINGDOM": "EUROPE",
+    "UKRAINE": "EUROPE",
+    "RUSSIA": "EUROPE",
+    "AFRICA": "AFRICA",
+    "IRAN": "MIDEAST",
+    "KUWAIT": "MIDEAST",
+    "YEMEN": "MIDEAST",
+    "ENERGY": "MIDEAST",
+    "SOUTH ASIA": "ASIA",
+    "EAST ASIA": "ASIA",
+    "SOUTHEAST ASIA": "ASIA",
+    "PACIFIC": "OCEANIA",
+    "MARKETS": "WORLD",
+    "CLIMATE": "WORLD",
+    "TECH": "WORLD",
+}
+
+BRIEFS = [
+    ("UNITED STATES", "Peltola beats Sullivan in Alaska; Senate is 56-44"),
+    ("UNITED STATES", "Fed minutes: almost all saw further rate rises"),
+    ("UNITED STATES", "Fed puts AI at the centre of the inflation debate"),
+    ("UNITED STATES", "Waymo pulls robotaxis off freeways after state ban"),
+    ("VENEZUELA", "US and Venezuela restore military ties and intelligence"),
+    ("MEXICO", "Sheinbaum reports a very good meeting with Trump on trade"),
+    ("EUROPE", "Berlin and London reject US criticism of Kyiv deep strikes"),
+    ("EUROPE", "Magnitude 5.7 quake shakes Romania; two injured"),
+    ("EUROPE", "Britain and EU near a reset deal, due Friday"),
+    ("UNITED KINGDOM", "Cambridge names Human its word of the year, citing AI"),
+    ("UNITED KINGDOM", "London sanctions settler leader Daniella Weiss"),
+    ("UKRAINE", "Crimean Bridge struck again; traffic halted on the span"),
+    ("RUSSIA", "Putin expects big potential benefits from the talks"),
+    ("IRAN", "Iran says drones hit Patriot batteries at Ali Al-Salem"),
+    ("IRAN", "Army chief vows a more crushing reply to any US attack"),
+    ("KUWAIT", "Kuwait army says air defences engaged hostile drones"),
+    ("YEMEN", "Houthis blame Saudi-led strikes for three deaths"),
+    ("ENERGY", "Three tankers burn after hitting mines off Hormuz"),
+    ("AFRICA", "WHO: DR Congo Ebola outbreak out of control at six months"),
+    ("AFRICA", "Confirmed Ebola cases pass 11,000; deaths above 5,300"),
+    ("AFRICA", "South Africa summons Nigeria's envoy over online remarks"),
+    ("SOUTH ASIA", "Cyclone Akvan due to hit Andhra coast around noon Friday"),
+    ("SOUTH ASIA", "Akvan to bring 120-130 km/h winds, gusting to 145"),
+    ("SOUTH ASIA", "India bowl first; New Zealand 60-4 at lunch in Wellington"),
+    ("EAST ASIA", "Beijing gives Japan's Takaichi a low-key welcome"),
+    ("EAST ASIA", "South Korea offers $75,000 per case of exam cheating"),
+    ("SOUTHEAST ASIA", "Arsenic in Mae Sai water 30 times the safe limit"),
+    ("SOUTHEAST ASIA", "Bank Indonesia lifts its rate to 6% as rupiah slides"),
+    ("PACIFIC", "Fiji declares a national disaster as El Nino drought bites"),
+    ("PACIFIC", "Tuvalu seeks $160m for Pacific early-warning systems"),
+    ("MARKETS", "S&P 500 falls 1.03% to 7,340 as rate worries bite"),
+    ("MARKETS", "Gold drops 2% to about $3,787, a one-year low"),
+    ("CLIMATE", "COP31 draft urges an immediate shift off fossil fuels"),
+    ("HAITI", "Thousands march in Port-au-Prince for Salvadoran troops"),
+    ("TECH", "Nvidia shares rise about 5% after hours on the results"),
+]
 
 LEADS = [
     {
-        "kicker": "APEC \u00b7 SHENZHEN",
-        "head": "Trump, Xi and Putin meet three-way for the first time",
+        "region": "ASIA",
+        "label": "1 - SHENZHEN - SUMMIT",
+        "headline": "Trump, Xi and Putin hold first three-way summit",
         "deck": (
-            "The US, Chinese and Russian presidents sit down in Shenzhen on Thursday "
-            "after Trump's separate talks with Xi. Iran, Ukraine and AI head an agenda "
-            "that is expected to yield little."
+            "The three meet at APEC in Shenzhen on Thursday; Iran, Ukraine and "
+            "arms control top the agenda, and expectations of a deal are low."
         ),
+        "art": "bars",
     },
     {
-        "kicker": "GULF \u00b7 IRAN",
-        "head": "Iran hits a US base in Kuwait; Centcom says no Americans hurt",
+        "region": "MIDEAST",
+        "label": "2 - GULF - KUWAIT",
+        "headline": "Iran says its drones struck a US air base in Kuwait",
         "deck": (
-            "Iran said its drones struck Patriot batteries and launch platforms at Ali "
-            "Al-Salem air base, retaliation for a US strike on Qeshm Island. Iran's army "
-            "chief vowed a harsher response to any new attack."
+            "Tehran said the attack hit Patriot batteries at Ali Al-Salem, in "
+            "retaliation for a US strike on Qeshm Island; Central Command said "
+            "no American personnel were wounded."
         ),
+        "art": "gulf",
     },
     {
-        "kicker": "UKRAINE",
-        "head": "Kyiv says one Trump-Putin-Xi meeting could end the war",
+        "region": "EUROPE",
+        "label": "3 - UKRAINE - WAR",
+        "headline": "Zelenskyy: one three-way meeting could end the war",
         "deck": (
-            "Zelenskyy said the three leaders have the means to stop it. The Crimean "
-            "Bridge was hit again, and the EU is weighing a 45 billion euro ($49.4bn) "
-            "loan to cover Ukraine's 2027 budget gap."
+            "He said the war could end if the leaders wanted it; the EU proposed "
+            "a 45bn euro loan for Ukraine's 2027 budget gap, and the Crimean "
+            "Bridge was struck again."
         ),
+        "art": "market",
     },
 ]
 
-GRID = [
-    ("US", "Peltola unseats Sullivan in Alaska, sealing a 56-44 Senate majority"),
-    ("US", "Fed minutes: almost all saw further rate rises as likely"),
-    ("MARKETS", "S&P 500 falls 1.0% to 7,340 as the dollar firms"),
-    ("MARKETS", "Gold drops 2% to about $3,787, a one-year low"),
-    ("MARKETS", "Brent holds near $92.52; 10-year Treasury above 5%"),
-    ("TECH", "Nvidia revenue doubles to $115.8bn in first results without Huang"),
-    ("TECH", "Anthropic prices its initial public offering"),
-    ("TECH", "Waymo pulls robotaxis off US freeways after California ban"),
-    ("HEALTH", "DR Congo's Ebola outbreak passes six months and 11,000 cases"),
-    ("HEALTH", "WHO puts deaths in the Congo outbreak above 5,300"),
-    ("CLIMATE", "COP31 draft calls for an immediate shift away from fossil fuels"),
-    ("CLIMATE", "Ministers deadlocked in Antalya over who pays"),
-    ("EUROPE", "Britain and the EU near a reset deal on food and youth mobility"),
-    ("EUROPE", "Von der Leyen presses member states to back the Ukraine package"),
-    ("UK", "Cambridge names \u201cHuman\u201d its word of the year, citing AI anxiety"),
-    ("RUSSIA", "Moscow reports a record 1,336 drones downed in a single night"),
-    ("MIDEAST", "Three tankers burn after striking mines in the Strait of Hormuz"),
-    ("MIDEAST", "Houthis blame Saudi strikes for three deaths in Yemen"),
-    ("AFRICA", "South Africa reprimands Nigeria's new high commissioner"),
-    ("SOUTH ASIA", "Thailand rushes water to 20,000 homes as arsenic taints supplies"),
-    ("SOUTH ASIA", "Arsenic traced to rare-earth mining across the Myanmar border"),
-    ("EAST ASIA", "Beijing gives Japan's Takaichi a deliberately muted reception"),
-    ("EAST ASIA", "South Korea offers $75,000 for each case of exam cheating"),
-    ("SE ASIA", "Indonesia and China sign four deals worth nearly S$100bn"),
-    ("LATAM", "US and Venezuela agree to restore military training and intelligence ties"),
-    ("LATAM", "Milei and Lula take their feud onto the world stage"),
-    ("AMERICAS", "Trump asks the Supreme Court to let Venezuelan deportations resume"),
-    ("US", "Florida pastor convicted over Haiti's president's assassination"),
-    ("SPORT", "India bowl first in Wellington; New Zealand 60-4 at lunch"),
-    ("SPORT", "Bumrah strikes twice as Latham falls for a duck"),
-    ("SPORT", "Pochettino begins work as Manchester United manager"),
-    ("SOUTH ASIA", "Cyclone Akvan tracks toward Andhra Pradesh, landfall due Friday"),
-    ("EUROPE", "Magnitude 5.7 quake shakes Romania's Vrancea region"),
-    ("DIPLOMACY", "Zelenskyy urges Beijing and Washington to press Moscow"),
-    ("ENERGY", "Equinor says a cyberattack hit its IT systems, output unaffected"),
-    ("PACIFIC", "Albanese and Carney stand with Putin for the APEC group photo"),
+NUMBERS = [
+    ("\u20ac45bn", "EU loan proposed for Ukraine's 2027 budget"),
+    ("11,000+", "confirmed Ebola cases in DR Congo"),
+    ("5,300+", "deaths in the same outbreak"),
+    ("$115.8bn", "Nvidia quarterly revenue, double a year earlier"),
+    ("56-44", "Democratic majority in the US Senate"),
+    ("145", "km/h gusts as Cyclone Akvan nears Andhra"),
 ]
 
-TICKER = [
-    ("S&P 500", "7,340", "\u22121.0%"),
-    ("Nasdaq", "24,328", "\u22120.7%"),
-    ("Dow", "50,759", "\u22121.6%"),
-    ("Brent", "$92.52", "\u22120.7%"),
-    ("Gold", "$3,787", "\u22122.0%"),
-    ("Bitcoin", "$64,300", "\u22120.8%"),
-    ("WTI", "$88.40", "\u22120.6%"),
-    ("10-yr UST", "5.02%", "+0.03"),
-]
 
-DOTS = [
-    ("Washington", -77.0, 38.9),
-    ("Brasilia", -47.9, -15.8),
-    ("Brussels", 4.4, 50.8),
-    ("London", -0.1, 51.5),
-    ("Kyiv", 30.5, 50.5),
-    ("Moscow", 37.6, 55.8),
-    ("Tehran", 51.4, 35.7),
-    ("Kuwait", 47.9, 29.4),
-    ("Nairobi", 36.8, -1.3),
-    ("New Delhi", 77.2, 28.6),
-    ("Bangkok", 100.5, 13.8),
-    ("Beijing", 116.4, 39.9),
-    ("Tokyo", 139.7, 35.7),
-    ("Sydney", 151.2, -33.9),
-]
+def e(text):
+    """Escape a story string for HTML text content."""
+    return html.escape(str(text), quote=True)
 
-# Natural Earth 1:110m land: 30 rings, 606 points, as "lon,lat" pairs split by ";".
-COAST = (
-    "-45,-78 -43,-80 -54,-81 -45,-78;-68,-71 -71,-73 -75,-72 -70,-69 -68,-71;-59,-64 -66,-68 -62,-71 "
-    "-61,-74 -71,-77 -77,-77 -74,-78 -78,-79 -58,-83 -29,-80 -36,-79 -35,-78 -18,-75 -7,-71 27,-70 34"
-    ",-69 39,-70 55,-66 61,-68 69,-68 68,-72 70,-72 88,-66 96,-67 103,-66 106,-67 114,-66 120,-67 135"
-    ",-65 137,-67 145,-67 171,-72 164,-76 167,-79 162,-79 160,-81 180,-85 180,-90 -180,-90 -179,-84 -"
-    "143,-85 -154,-84 -153,-82 -157,-81 -146,-80 -155,-79 -158,-77 -114,-74 -101,-75 -104,-73 -75,-74"
-    " -67,-72 -68,-67 -59,-64;-68,-54 -65,-55 -69,-55 -75,-53 -68,-54;173,-41 174,-41 173,-44 169,-47"
-    " 167,-46 173,-41;175,-36 179,-38 175,-42 173,-35 175,-36;50,-14 47,-25 44,-25 44,-16 49,-12 50,-"
-    "14;144,-14 153,-26 153,-32 150,-37 146,-39 141,-38 138,-34 137,-35 138,-33 136,-35 131,-31 118,-"
-    "35 115,-34 116,-32 113,-26 114,-22 121,-20 126,-14 130,-15 132,-11 136,-12 136,-15 140,-18 142,-"
-    "11 144,-14;134,-1 135,-3 138,-2 145,-4 151,-11 145,-8 143,-9 138,-8 138,-5 133,-4 132,-3 134,-2 "
-    "131,-1 134,-1;125,1 120,0 121,-1 123,-1 122,-2 123,-5 121,-3 119,-5 120,1 125,1;106,-6 103,-4 95"
-    ",5 104,0 106,-3 106,-6;118,2 119,1 116,-4 110,-3 109,0 110,2 117,7 119,5 118,2;141,37 140,35 136"
-    ",33 131,34 132,33 130,31 129,33 139,38 140,41 142,40 141,37;-56,51 -53,49 -53,47 -59,48 -56,51;-"
-    "3,59 -3,56 2,53 1,51 -5,50 -3,51 -5,52 -5,53 -3,54 -6,57 -3,59;-15,66 -14,65 -19,63 -24,66 -15,6"
-    "6;-175,67 -170,66 -173,64 -179,66 -180,65 -180,69 -175,67;-91,69 -87,67 -86,70 -83,70 -81,68 -93"
-    ",62 -95,59 -92,57 -82,55 -80,51 -79,53 -80,55 -77,57 -79,59 -78,62 -74,62 -70,61 -68,58 -65,60 -"
-    "56,52 -60,50 -66,50 -71,47 -65,49 -64,46 -60,46 -65,44 -66,44 -64,45 -67,45 -71,43 -70,42 -76,39"
-    " -76,37 -76,39 -76,36 -81,31 -80,25 -84,30 -97,28 -98,22 -96,19 -92,19 -90,21 -87,22 -89,16 -83,"
-    "15 -84,11 -81,9 -77,9 -72,12 -72,9 -70,12 -68,11 -62,11 -57,6 -51,4 -50,0 -40,-3 -36,-5 -35,-7 -"
-    "39,-13 -41,-22 -48,-25 -54,-34 -58,-34 -57,-37 -65,-41 -63,-43 -67,-46 -66,-48 -69,-51 -68,-52 -"
-    "71,-54 -75,-52 -76,-49 -74,-47 -76,-47 -73,-42 -74,-43 -70,-20 -76,-15 -81,-6 -80,-3 -81,-1 -77,"
-    "4 -78,8 -81,7 -86,10 -87,13 -104,18 -114,32 -115,30 -109,23 -112,25 -117,33 -121,35 -124,40 -125"
-    ",48 -123,47 -123,49 -127,51 -134,58 -147,61 -152,59 -151,61 -158,56 -165,54 -157,59 -162,59 -166"
-    ",62 -161,65 -168,66 -162,66 -167,68 -157,71 -137,69 -128,70 -109,67 -106,69 -96,67 -94,69 -96,70"
-    " -95,72 -91,69;-114,73 -108,72 -108,73 -107,73 -101,70 -116,69 -117,70 -112,70 -119,72 -114,73;-"
-    "87,73 -72,72 -68,70 -67,69 -69,69 -62,67 -64,65 -68,66 -65,63 -69,64 -66,62 -78,64 -74,65 -73,68"
-    " -79,70 -89,70 -90,72 -87,73;-120,71 -126,72 -124,74 -125,74 -118,74 -116,73 -120,71;-108,76 -10"
-    "6,75 -118,75 -108,76;58,71 52,71 56,75 69,77 58,74 55,72 58,71;-95,77 -80,75 -92,75 -97,77 -95,7"
-    "7;107,77 114,76 109,74 127,74 131,71 140,71 140,73 161,69 179,69 180,69 180,65 177,65 179,63 170"
-    ",60 164,60 162,55 157,51 156,57 164,63 160,61 157,61 155,59 142,59 135,55 140,54 141,52 138,46 1"
-    "28,40 129,35 126,34 125,40 121,39 122,41 118,39 119,37 122,37 119,35 122,32 122,28 116,23 110,20"
-    " 109,22 106,20 109,13 105,9 100,13 99,9 103,6 104,1 101,3 98,8 97,17 94,16 91,23 87,21 80,16 80,"
-    "10 78,8 73,21 70,21 66,25 57,26 48,30 52,24 56,26 60,22 55,17 43,13 43,17 35,30 34,28 32,30 37,1"
-    "9 43,12 45,10 51,12 51,11 48,4 39,-5 41,-15 35,-20 36,-24 33,-26 32,-29 26,-34 18,-34 12,-18 14,"
-    "-11 9,-1 9,4 4,6 -9,5 -17,12 -17,22 -6,36 10,37 11,37 10,34 19,30 22,33 34,31 36,37 28,37 26,39 "
-    "34,42 42,42 37,45 39,47 35,46 36,45 34,44 31,47 28,43 29,41 23,40 24,38 22,36 20,42 13,46 13,44 "
-    "18,40 17,40 16,38 9,44 3,43 -2,37 -9,37 -9,43 -1,44 -1,46 -5,49 8,54 9,57 11,58 10,55 11,54 20,5"
-    "4 22,57 24,57 23,59 29,60 21,61 22,63 25,65 22,66 18,63 17,61 19,60 16,56 13,55 10,59 6,59 5,62 "
-    "15,68 25,71 40,68 40,66 33,67 37,64 37,65 44,66 43,69 46,68 46,67 54,69 60,68 61,70 69,68 67,71 "
-    "73,73 74,68 72,66 75,68 73,71 75,73 76,71 82,72 81,74 87,75 107,77;18,80 22,79 16,77 10,80 18,80"
-    ";100,79 91,80 96,81 100,79;-87,80 -91,78 -97,80 -92,81 -87,80;-68,83 -62,82 -77,79 -75,79 -81,76"
-    " -89,76 -88,78 -85,78 -88,78 -85,79 -87,80 -82,80 -92,82 -68,83;-27,84 -21,83 -31,82 -12,81 -20,"
-    "80 -18,80 -20,79 -18,77 -22,77 -19,74 -25,72 -22,71 -26,71 -26,70 -22,70 -40,65 -43,60 -48,61 -5"
-    "2,64 -54,67 -51,70 -55,70 -51,71 -56,72 -55,73 -59,76 -69,76 -71,77 -67,77 -73,78 -66,79 -68,80 "
-    "-63,82 -27,84"
+
+# --------------------------------------------------------------- artwork
+
+
+def star_points(cx, cy, r):
+    """Ten alternating radii for a five-point star."""
+    pts = []
+    for i in range(10):
+        radius = r if i % 2 == 0 else r * 0.382
+        angle = -math.pi / 2 + i * math.pi / 5
+        pts.append(
+            "{:.2f},{:.2f}".format(
+                cx + radius * math.cos(angle), cy + radius * math.sin(angle)
+            )
+        )
+    return " ".join(pts)
+
+
+def roundel_us(cx, cy, r):
+    stripes = "".join(
+        '<rect x="{:.2f}" y="{:.2f}" width="{:.2f}" height="1.3" fill="#b5202a"/>'.format(
+            cx - r, cy - r + i * 1.9, 2 * r
+        )
+        for i in range(8)
+    )
+    return (
+        "<g>"
+        '<clipPath id="c_us"><circle cx="{cx:.2f}" cy="{cy:.2f}" r="{r:.2f}"/></clipPath>'
+        '<circle cx="{cx:.2f}" cy="{cy:.2f}" r="{r:.2f}" fill="#fbfbf8"/>'
+        '<g clip-path="url(#c_us)">'
+        + stripes
+        + '<rect x="{cx0:.2f}" y="{cy0:.2f}" width="{cw:.2f}" height="{ch:.2f}" fill="#1b2f5e"/>'
+        '<circle cx="{d1x:.2f}" cy="{d1y:.2f}" r="0.55" fill="#fbfbf8"/>'
+        '<circle cx="{d2x:.2f}" cy="{d2y:.2f}" r="0.55" fill="#fbfbf8"/>'
+        '<circle cx="{d3x:.2f}" cy="{d3y:.2f}" r="0.55" fill="#fbfbf8"/>'
+        "</g>"
+        '<circle cx="{cx:.2f}" cy="{cy:.2f}" r="{r:.2f}" fill="none" '
+        'stroke="#8e939c" stroke-width="0.8"/>'
+        "</g>"
+    ).format(
+        cx=cx,
+        cy=cy,
+        r=r,
+        cx0=cx - r,
+        cy0=cy - r,
+        cw=r * 0.95,
+        ch=r * 0.95,
+        d1x=cx - r * 0.62,
+        d1y=cy - r * 0.66,
+        d2x=cx - r * 0.28,
+        d2y=cy - r * 0.34,
+        d3x=cx - r * 0.66,
+        d3y=cy - r * 0.16,
+    )
+
+
+def roundel_cn(cx, cy, r):
+    return (
+        '<g><circle cx="{cx:.2f}" cy="{cy:.2f}" r="{r:.2f}" fill="#d8231f"/>'
+        '<polygon points="{star}" fill="#ffd83d"/>'
+        '<circle cx="{cx:.2f}" cy="{cy:.2f}" r="{r:.2f}" fill="none" '
+        'stroke="#8e939c" stroke-width="0.8"/></g>'
+    ).format(cx=cx, cy=cy, r=r, star=star_points(cx + 0.7, cy + 0.5, r * 0.66))
+
+
+def roundel_ru(cx, cy, r):
+    band = 2 * r / 3.0
+    return (
+        "<g>"
+        '<clipPath id="c_ru"><circle cx="{cx:.2f}" cy="{cy:.2f}" r="{r:.2f}"/></clipPath>'
+        '<g clip-path="url(#c_ru)">'
+        '<rect x="{x:.2f}" y="{y0:.2f}" width="{w:.2f}" height="{band:.2f}" fill="#f4f4f2"/>'
+        '<rect x="{x:.2f}" y="{y1:.2f}" width="{w:.2f}" height="{band:.2f}" fill="#24408e"/>'
+        '<rect x="{x:.2f}" y="{y1:.2f}" width="{w:.2f}" height="{band:.2f}" fill="#24408e"/>'
+        '<rect x="{x:.2f}" y="{y2:.2f}" width="{w:.2f}" height="{band:.2f}" fill="#d52b1e"/>'
+        "</g>"
+        '<circle cx="{cx:.2f}" cy="{cy:.2f}" r="{r:.2f}" fill="none" '
+        'stroke="#8e939c" stroke-width="0.8"/>'
+        "</g>"
+    ).format(
+        cx=cx,
+        cy=cy,
+        r=r,
+        x=cx - r,
+        w=2 * r,
+        band=band,
+        y0=cy - r,
+        y1=cy - r / 3.0,
+        y2=cy + r / 3.0,
+    )
+
+
+SVG_OPEN = (
+    '<svg viewBox="0 0 290 140" preserveAspectRatio="none" '
+    'xmlns="http://www.w3.org/2000/svg">'
 )
 
-HERE = pathlib.Path(__file__).resolve().parent
-CSS_PATH = HERE / "poster.css"
-OUT_PATH = HERE / "poster.html"
 
-STORIES = len(LEADS) + len(GRID)
-QUOTES = len(TICKER)
-EDITION = "{} stories from every region \u00b7 {} market quotes".format(STORIES, QUOTES)
+def art_bars():
+    """Pale panel, grey zero line, six rising blue bars, three flag roundels."""
+    base = 122.0
+    heights = [26, 44, 38, 60, 54, 74]
+    bw = 27.0
+    step = 34.0
+    x0 = (290.0 - (len(heights) * step - (step - bw))) / 2.0
 
-MAP_W, MAP_H = 880, 92
-LAT_TOP, LAT_BOT = 78.0, -58.0
-
-
-def _rings():
-    out = []
-    for group in COAST.split(";"):
-        pts = []
-        for pair in group.split():
-            lon, lat = pair.split(",")
-            pts.append((int(lon), int(lat)))
-        if len(pts) >= 3:
-            out.append(pts)
-    return out
-
-
-def _px(lon, lat):
-    x = (lon + 180.0) * (MAP_W / 360.0)
-    y = (LAT_TOP - lat) * (MAP_H / (LAT_TOP - LAT_BOT))
-    return round(x, 1), round(y, 1)
-
-
-def _map_svg():
-    land = []
-    for ring in _rings():
-        pts = " ".join("{},{}".format(*_px(lon, lat)) for lon, lat in ring)
-        land.append('<polygon points="{}"/>'.format(pts))
-
-    dots = []
-    for name, lon, lat in DOTS:
-        x, y = _px(lon, lat)
-        dots.append('<circle cx="{}" cy="{}" r="2.6"/>'.format(x, y))
-
-    return (
-        '  <section class="mapband">\n'
-        '    <div class="maplabel">Where the<br>day happened</div>\n'
-        '    <svg viewBox="0 0 {w} {h}" preserveAspectRatio="xMidYMid meet" '
-        'role="img" aria-label="World map marking the day\u2019s datelines">\n'
-        '      <g class="land">{land}</g>\n'
-        '      <g class="pins">{dots}</g>\n'
-        "    </svg>\n"
-        "  </section>\n"
-    ).format(w=MAP_W, h=MAP_H, land="".join(land), dots="".join(dots))
-
-
-def _lead_html(lead):
-    return (
-        '  <article class="lead">\n'
-        '    <div class="kicker">{kicker}</div>\n'
-        '    <h2>{head}</h2>\n'
-        '    <p class="deck">{deck}</p>\n'
-        "  </article>\n"
-    ).format(
-        kicker=html.escape(lead["kicker"]),
-        head=html.escape(lead["head"]),
-        deck=html.escape(lead["deck"]),
-    )
-
-
-def _tick_html(name, val, chg):
-    return '  <div class="tick"><b>{}</b><span>{}</span><em>{}</em></div>\n'.format(
-        html.escape(name), html.escape(val), html.escape(chg)
-    )
-
-
-def _cell_html(tag, headline):
-    return '  <div class="cell"><div class="tag">{}</div><h3>{}</h3></div>\n'.format(
-        html.escape(tag), html.escape(headline)
-    )
-
-
-def build():
-    css = CSS_PATH.read_text(encoding="utf-8")
-    parts = [
-        "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n",
-        "<title>{} \u2014 19 November 2026</title>\n".format(PAPER),
-        "<style>\n" + css + "</style>\n</head>\n<body>\n",
-        '<div class="sheet">\n',
-        '  <header class="masthead">\n',
-        '    <div class="rule thin"></div>\n',
-        '    <span class="paper">{}</span>\n'.format(PAPER),
-        '    <span class="edition">{}</span>\n'.format(html.escape(EDITION)),
-        '    <div class="rule thick"></div>\n',
-        '    <div class="dateline"><span class="date">{}</span>'
-        '<span class="strap">{}</span></div>\n'.format(
-            html.escape(DATE_LINE), html.escape(STRAP)
-        ),
-        "  </header>\n",
-        '  <section class="leads">\n',
-    ]
-    for lead in LEADS:
-        parts.append(_lead_html(lead))
-    parts.append("  </section>\n")
-
-    parts.append('  <section class="ticker">\n')
-    for name, val, chg in TICKER:
-        parts.append(_tick_html(name, val, chg))
-    parts.append("  </section>\n")
-
-    parts.append(_map_svg())
-
-    parts.append('  <section class="grid">\n')
-    for tag, headline in GRID:
-        parts.append(_cell_html(tag, headline))
-    parts.append("  </section>\n")
-
+    parts = ['<rect x="0" y="0" width="290" height="140" fill="#eef1f6"/>']
+    for gy in (48, 78, 104):
+        parts.append(
+            '<line x1="0" y1="{:.1f}" x2="290" y2="{:.1f}" '
+            'stroke="#dce2eb" stroke-width="0.9"/>'.format(gy, gy)
+        )
     parts.append(
-        '  <footer class="foot">'
-        "<span>Compiled from AP, Reuters, CNBC, CNA, Al Jazeera and UN News. "
-        "Contested claims are attributed.</span>"
-        "<span>{}</span></footer>\n".format(html.escape(DATE_LINE))
+        '<line x1="6" y1="{:.1f}" x2="284" y2="{:.1f}" '
+        'stroke="#98a2b0" stroke-width="1.1"/>'.format(base, base)
     )
-    parts.append("</div>\n</body>\n</html>\n")
+    for i, hh in enumerate(heights):
+        bx = x0 + i * step
+        parts.append(
+            '<rect x="{:.2f}" y="{:.2f}" width="{:.2f}" height="{:.2f}" '
+            'fill="#41648c"/>'.format(bx, base - hh, bw, hh)
+        )
+    # roundels above the three tallest bars: US, China, Russia
+    for idx, fn in ((3, roundel_us), (4, roundel_cn), (5, roundel_ru)):
+        cx = x0 + idx * step + bw / 2.0
+        cy = max(14.0, base - heights[idx] - 14.0)
+        parts.append(fn(cx, cy, 9.0))
+    return SVG_OPEN + "".join(parts) + "</svg>"
 
-    OUT_PATH.write_text("".join(parts), encoding="utf-8")
-    print(
-        "poster.html: {} leads + {} briefs = {} stories, + {} market quotes".format(
-            len(LEADS), len(GRID), STORIES, QUOTES
+
+def art_gulf():
+    """Dusk gradient sky, amber sun, dark skyline silhouette, ground bar."""
+    parts = [
+        "<defs>"
+        '<linearGradient id="gulfsky" x1="0" y1="0" x2="0" y2="1">'
+        '<stop offset="0" stop-color="#3b1d52"/>'
+        '<stop offset="0.55" stop-color="#7b3a72"/>'
+        '<stop offset="1" stop-color="#c2628a"/>'
+        "</linearGradient>"
+        "</defs>",
+        '<rect x="0" y="0" width="290" height="140" fill="url(#gulfsky)"/>',
+        '<circle cx="196" cy="54" r="33" fill="#f0a84e" opacity="0.15"/>',
+        '<circle cx="196" cy="54" r="25" fill="#f0a84e"/>',
+    ]
+    towers = [
+        (4, 80, 26, 46),
+        (36, 92, 20, 34),
+        (60, 64, 22, 62),
+        (88, 86, 26, 40),
+        (118, 56, 20, 70),
+        (144, 84, 22, 42),
+        (172, 72, 28, 54),
+        (226, 90, 24, 36),
+        (256, 96, 22, 30),
+    ]
+    body = []
+    for tx, ty, tw, th in towers:
+        body.append(
+            '<rect x="{}" y="{}" width="{}" height="{}" fill="#22112e"/>'.format(
+                tx, ty, tw, th
+            )
+        )
+        wy = ty + 6
+        while wy < ty + th - 5:
+            wx = tx + 4
+            while wx < tx + tw - 4:
+                body.append(
+                    '<rect x="{:.1f}" y="{:.1f}" width="2.2" height="2.4" '
+                    'fill="#f0a84e" opacity="0.5"/>'.format(wx, wy)
+                )
+                wx += 7
+            wy += 9
+    parts.append("".join(body))
+    parts.append('<rect x="0" y="124" width="290" height="16" fill="#180c22"/>')
+    parts.append(
+        '<line x1="0" y1="124" x2="290" y2="124" stroke="#0e0615" stroke-width="1.5"/>'
+    )
+    return SVG_OPEN + "".join(parts) + "</svg>"
+
+
+def art_market():
+    """Dark trading panel: ANT / NASDAQ, baseline, rising candles, price box."""
+    parts = ['<rect x="0" y="0" width="290" height="140" fill="#123238"/>']
+    parts.append(
+        '<text x="10" y="26" font-family="Liberation Mono, monospace" font-size="12" '
+        'font-weight="bold" letter-spacing="2" fill="#ffffff">ANT</text>'
+    )
+    parts.append(
+        '<text x="10" y="40" font-family="Liberation Mono, monospace" font-size="6.4" '
+        'letter-spacing="0.7" fill="#f0a84e">NASDAQ - FIRST TRADING DAY</text>'
+    )
+    base = 124.0
+    parts.append(
+        '<line x1="10" y1="{:.1f}" x2="280" y2="{:.1f}" stroke="#3f9b6d" '
+        'stroke-width="1.1" opacity="0.9"/>'.format(base, base)
+    )
+    heights = [8, 12, 10, 17, 15, 23, 27, 34, 42, 51, 60]
+    cw = 9.0
+    step = 17.5
+    x = 12.0
+    up = True
+    for i, hh in enumerate(heights):
+        colour = "#3f9b6d" if up else "#8f3b3b"
+        top = base - hh
+        parts.append(
+            '<line x1="{:.1f}" y1="{:.1f}" x2="{:.1f}" y2="{:.1f}" '
+            'stroke="{}" stroke-width="1"/>'.format(
+                x + cw / 2, top - 3, x + cw / 2, top + hh + 2, colour
+            )
+        )
+        parts.append(
+            '<rect x="{:.1f}" y="{:.1f}" width="{:.1f}" height="{:.1f}" fill="{}"/>'.format(
+                x, top, cw, hh, colour
+            )
+        )
+        up = not up
+        x += step
+    parts.append(
+        '<rect x="214" y="66" width="64" height="28" fill="#ffffff" rx="1.5"/>'
+        '<text x="246" y="85" text-anchor="middle" '
+        'font-family="Liberation Mono, monospace" font-size="13" '
+        'font-weight="bold" fill="#123238">$83</text>'
+    )
+    return SVG_OPEN + "".join(parts) + "</svg>"
+
+
+ARTS = {"bars": art_bars, "gulf": art_gulf, "market": art_market}
+
+
+# --------------------------------------------------------------- counting
+
+
+def region_for(tag):
+    if tag not in REGION_OF:
+        raise SystemExit("unmapped brief tag: {!r}".format(tag))
+    return REGION_OF[tag]
+
+
+def tally():
+    """Count stories per region from what is actually printed."""
+    counts = {name: 0 for name, _colour in REGIONS}
+    names = set(counts)
+    for lead in LEADS:
+        # leads declare their region directly, not a brief tag
+        if lead["region"] not in names:
+            raise SystemExit("unmapped lead region: {!r}".format(lead["region"]))
+        counts[lead["region"]] += 1
+    for tag, _headline in BRIEFS:
+        counts[region_for(tag)] += 1
+    total = len(LEADS) + len(BRIEFS)
+    if sum(counts.values()) != total:
+        raise SystemExit(
+            "region sum {} does not equal story count {}".format(
+                sum(counts.values()), total
+            )
+        )
+    for name, _colour in REGIONS:
+        if counts[name] == 0:
+            raise SystemExit("region {} has no stories".format(name))
+    return counts, total
+
+
+# ------------------------------------------------------------------ page
+
+
+def main():
+    counts, total = tally()
+
+    ears = (
+        '<div class="ears">'
+        '<div class="ear-left">THE WORLD TODAY</div>'
+        '<div class="ear-right">{}</div>'
+        "</div>".format(e("THURSDAY'S NEWS - ONE PAGE - {} STORIES".format(total)))
+    )
+
+    deck = '<div class="deck">{}</div>'.format(
+        " &middot; ".join(e(item) for item in DECK_ITEMS)
+    )
+
+    tabs = "".join(
+        '<div class="tab" style="background:{colour}">'
+        '<div class="tab-name">{name}</div>'
+        '<div class="tab-count">{count}</div>'
+        "</div>".format(colour=colour, name=e(name), count=counts[name])
+        for name, colour in REGIONS
+    )
+
+    numbers = "".join(
+        '<div class="num"><div class="num-fig">{fig}</div>'
+        '<div class="num-cap">{cap}</div></div>'.format(fig=e(fig), cap=e(cap))
+        for fig, cap in NUMBERS
+    )
+
+    cards = "".join(
+        '<div class="card">'
+        "{svg}"
+        '<div class="card-label">{label}</div>'
+        '<h2 class="card-h">{head}</h2>'
+        '<p class="card-deck">{deck}</p>'
+        "</div>".format(
+            svg=ARTS[lead["art"]](),
+            label=e(lead["label"]),
+            head=e(lead["headline"]),
+            deck=e(lead["deck"]),
+        )
+        for lead in LEADS
+    )
+
+    briefs = "".join(
+        '<div class="brief"><div class="brief-tag">{tag}</div>'
+        '<div class="brief-h">{head}</div></div>'.format(tag=e(tag), head=e(head))
+        for tag, head in BRIEFS
+    )
+
+    footer = '<div class="footer">{}</div>'.format(
+        e(
+            "SOURCES: AP, REUTERS, BBC, FINANCIAL TIMES, THE HINDU - "
+            "{} STORIES FROM SIX CONTINENTS".format(total)
         )
     )
 
+    doc = (
+        "<!DOCTYPE html>\n"
+        '<html lang="en">\n'
+        "<head>\n"
+        '<meta charset="utf-8">\n'
+        "<title>The World Today - {dateline}</title>\n"
+        '<link rel="stylesheet" href="poster.css">\n'
+        "</head>\n"
+        "<body>\n"
+        '<div class="sheet">\n'
+        "{ears}\n"
+        '<div class="rule"></div>\n'
+        '<h1 class="dateline">{dateline}</h1>\n'
+        "{deck}\n"
+        '<div class="tabs">{tabs}</div>\n'
+        '<div class="numbers">{numbers}</div>\n'
+        '<div class="leads">{cards}</div>\n'
+        '<div class="briefs">{briefs}</div>\n'
+        "{footer}\n"
+        "</div>\n"
+        "</body>\n"
+        "</html>\n"
+    ).format(
+        dateline=e(DATELINE),
+        ears=ears,
+        deck=deck,
+        tabs=tabs,
+        numbers=numbers,
+        cards=cards,
+        briefs=briefs,
+        footer=footer,
+    )
+
+    out = HERE / "poster.html"
+    out.write_text(doc, encoding="utf-8")
+
+    print("poster.html: {} stories; region sum {}".format(total, sum(counts.values())))
+
 
 if __name__ == "__main__":
-    build()
+    main()
