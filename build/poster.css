@@ -1,16 +1,20 @@
 /* The World Today - 19 November 2026 front page.
-   1024x1024, no scrolling, no clipping. */
-
-* { margin: 0; padding: 0; box-sizing: border-box; }
+   Exactly 1024x1024, no scrolling, nothing clipped. */
 
 html, body {
+  margin: 0;
+  padding: 0;
   width: 1024px;
   height: 1024px;
   overflow: hidden;
+  background: #efe9dd;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
 }
 
 body {
-  background: #f7f4ec;
   color: #16130e;
   font-family: "Liberation Serif", serif;
   -webkit-font-smoothing: antialiased;
@@ -20,249 +24,293 @@ body {
 .sheet {
   width: 1024px;
   height: 1024px;
+  padding: 0;
   display: flex;
   flex-direction: column;
-  padding: 12px 24px 0;
   overflow: hidden;
+  background: #efe9dd;
 }
 
-/* ---------------------------------------------------------------- 1. ears */
+/* ------------------------------------------------------------- masthead */
 
-.ears {
+.mast {
+  height: 214px;
+  background: #12203f;
+  color: #f7f3e8;
+  padding: 14px 24px 0;
+  flex: 0 0 auto;
   display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  flex: 0 0 auto;
+  flex-direction: column;
 }
 
-.ears div {
-  font-family: "Liberation Sans", sans-serif;
-  font-size: 10px;
-  line-height: 1.1;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
+.kicker {
+  font: 600 12px/1 "Liberation Sans", sans-serif;
+  letter-spacing: 2.6px;
+  color: #e0b44a;
 }
-
-.ear-left { font-weight: bold; color: #b5202a; }
-.ear-right { color: #6d6656; }
-
-.rule {
-  height: 2px;
-  background: #000;
-  margin: 6px 0 4px;
-  flex: 0 0 auto;
-}
-
-/* ------------------------------------------------------------ 2. dateline */
 
 .dateline {
-  font-family: "Liberation Serif", serif;
-  font-size: 84px;
-  line-height: 0.88;
-  font-weight: bold;
-  letter-spacing: -2.6px;
-  white-space: nowrap;
-  color: #0f0d09;
-  flex: 0 0 auto;
-  /* line-height 0.88 makes the 84px glyphs overflow the box by ~20px, so the
-     descender of "Thursday" needs explicit clearance above the deck. */
-  margin: 2px 0 24px;
+  font: 400 76px/1.0 "Liberation Serif", serif;
+  margin-top: 4px;
+  padding-bottom: 2px;
 }
 
-/* ---------------------------------------------------------------- 3. deck */
+.mastrow {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-top: 6px;
+}
+
+.count {
+  font: 700 22px/1 "Liberation Sans", sans-serif;
+  letter-spacing: 1px;
+}
+
+.sub {
+  font: 400 10.5px/1 "Liberation Sans", sans-serif;
+  letter-spacing: 2.4px;
+  color: #9fb0cf;
+}
+
+/* three lead labels as a foot strip inside the masthead */
 
 .deck {
-  font-family: "Liberation Serif", serif;
-  font-style: italic;
-  font-size: 15px;
-  line-height: 1.22;
-  color: #b5202a;
-  border-bottom: 1px solid #c9c2b2;
-  padding: 4px 0 5px;
-  margin-bottom: 7px;
-  white-space: nowrap;
-  overflow: hidden;
-  flex: 0 0 auto;
-}
-
-/* -------------------------------------------------------- 4. region index */
-
-.tabs {
   display: flex;
-  gap: 3px;
-  flex: 0 0 auto;
-  margin-bottom: 7px;
+  gap: 0;
+  margin-top: auto;
+  border-top: 1px solid #38507a;
+  padding-top: 8px;
+  font: 600 9.5px/1 "Liberation Sans", sans-serif;
+  letter-spacing: 1.2px;
+  color: #b9c7e2;
 }
 
-.tab {
+.deck .dcell {
   flex: 1 1 0;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: 5px 7px 6px;
-  color: #fff;
-}
-
-.tab-name {
-  font-family: "Liberation Sans", sans-serif;
-  font-size: 8.5px;
-  line-height: 1.1;
-  letter-spacing: 1.1px;
-  text-transform: uppercase;
   white-space: nowrap;
   overflow: hidden;
-  opacity: 0.92;
+  text-overflow: ellipsis;
+  padding-right: 12px;
 }
 
-.tab-count {
-  font-family: "Liberation Sans", sans-serif;
-  font-size: 15px;
-  font-weight: bold;
-  line-height: 1;
-  margin-top: 4px;
+.deck .dot {
+  vertical-align: 0;
 }
 
-/* --------------------------------------------------------- 5. numbers strip */
+.maststat {
+  display: flex;
+  gap: 38px;
+  margin-top: 12px;
+  border-top: 1px solid #2c3d63;
+  padding-top: 8px;
+}
 
-.numbers {
+.maststat .mcell {
+  display: block;
+}
+
+.maststat .mcell b {
+  display: block;
+  font: 700 27px/1 "Liberation Serif", serif;
+  color: #e0b44a;
+}
+
+.maststat .mcell span {
+  display: block;
+  margin-top: 3px;
+  font: 600 8.5px/1 "Liberation Sans", sans-serif;
+  letter-spacing: 1.7px;
+  color: #9fb0cf;
+}
+
+/* ----------------------------------------------------------- region key */
+
+.key {
+  height: 30px;
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  padding: 0 24px;
+  background: #1b2c50;
+  color: #e8eefb;
+  font: 600 9.5px/1 "Liberation Sans", sans-serif;
+  letter-spacing: 1.1px;
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 4px;
+  vertical-align: middle;
+}
+
+/* --------------------------------------------------------------- leads */
+
+section.feat {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  padding: 12px 24px 0;
+  flex: 0 0 auto;
+  border-bottom: 3px solid #12203f;
+  padding-bottom: 10px;
+}
+
+.fcard .art {
+  height: 118px;
+  margin-bottom: 6px;
+}
+
+.fcard .art svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.flabel {
+  font: 700 8.5px/1.2 "Liberation Sans", sans-serif;
+  letter-spacing: 1.3px;
+  color: #8d3b2f;
+}
+
+.fh {
+  font: 700 18px/1.1 "Liberation Serif", serif;
+  margin: 3px 0 4px;
+}
+
+.fd {
+  font: 400 9.8px/1.26 "Liberation Sans", sans-serif;
+  color: #4b4536;
+}
+
+/* --------------------------------------------------------------- cards */
+
+section.cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 7px 12px;
+  padding: 10px 24px 0;
+  flex: 0 0 auto;
+}
+
+.ccard {
   display: flex;
   gap: 6px;
-  border-top: 1px solid #c9c2b2;
-  border-bottom: 2px solid #000;
-  padding: 4px 0 5px;
-  margin-bottom: 8px;
+  align-items: flex-start;
+}
+
+.ccard .art {
+  width: 46px;
+  height: 40px;
   flex: 0 0 auto;
 }
 
+.ccard .art svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.ch {
+  font: 700 11.4px/1.14 "Liberation Serif", serif;
+  padding-left: 0;
+}
+
+.cn {
+  display: inline-block;
+  min-width: 13px;
+  height: 13px;
+  margin-right: 4px;
+  border-radius: 2px;
+  color: #f7f3e8;
+  font: 700 8.5px/13px "Liberation Sans", sans-serif;
+  text-align: center;
+  vertical-align: 1px;
+}
+
+/* -------------------------------------------------------------- briefs */
+
+section.briefs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-auto-rows: 1fr;
+  gap: 0 12px;
+  padding: 9px 24px 0;
+  flex: 1 1 auto;
+  align-content: stretch;
+}
+
+.b {
+  display: flex;
+  gap: 5px;
+  align-items: flex-start;
+  font: 400 10.6px/1.2 "Liberation Sans", sans-serif;
+  color: #2b271e;
+  border-top: 1px solid #cfc7b6;
+  padding-top: 4px;
+}
+
+.b .bk {
+  flex: 0 0 46px;
+  display: flex;
+  align-items: center;
+}
+
+.b .tag {
+  font: 700 7.2px/1.1 "Liberation Sans", sans-serif;
+  letter-spacing: 0.4px;
+  color: #6b6350;
+  text-transform: uppercase;
+}
+
+.b .tag {
+  flex: 1 1 auto;
+}
+
+.b .dot {
+  margin-right: 3px;
+  vertical-align: 0;
+  flex: 0 0 auto;
+}
+
+/* ------------------------------------------------------------- numbers */
+
 .num {
-  flex: 1 1 0;
-  min-width: 0;
-  padding-right: 2px;
+  border-top: 3px solid #12203f;
+  margin-top: 8px;
+  padding: 8px 24px 6px;
+  display: flex;
+  justify-content: space-between;
+  flex: 0 0 auto;
 }
 
-.num-fig {
-  font-family: "Liberation Sans", sans-serif;
-  font-size: 27px;
-  font-weight: bold;
-  line-height: 1;
-  letter-spacing: -0.7px;
+.num b {
+  font: 700 26px/1 "Liberation Serif", serif;
   color: #b5202a;
-  white-space: nowrap;
+  display: block;
 }
 
-.num-cap {
-  font-family: "Liberation Sans", sans-serif;
-  font-size: 8.4px;
-  line-height: 1.15;
-  color: #554f42;
+.num i {
+  font: 400 8px/1.2 "Liberation Sans", sans-serif;
+  font-style: normal;
+  color: #5b5443;
+  display: block;
+  max-width: 118px;
   margin-top: 2px;
 }
 
-/* ------------------------------------------------------------ 6. lead cards */
+/* ------------------------------------------------------------ colophon */
 
-.leads {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
-  border-bottom: 2px solid #000;
-  padding-bottom: 8px;
-  margin-bottom: 6px;
+.foot {
+  font: 400 8.5px/1 "Liberation Sans", sans-serif;
+  letter-spacing: 1.6px;
+  color: #7b7361;
+  padding: 5px 24px 9px;
+  border-top: 1px solid #cfc7b6;
   flex: 0 0 auto;
-}
-
-.card { min-width: 0; overflow: hidden; }
-
-.card svg.art,
-.card .art {
-  display: block;
-  width: 100%;
-  height: 108px;
-  border: 1px solid #ddd6c6;
-  margin-bottom: 4px;
-}
-
-.card-label {
-  font-family: "Liberation Sans", sans-serif;
-  font-size: 8.6px;
-  font-weight: bold;
-  letter-spacing: 1.05px;
-  text-transform: uppercase;
-  color: #b5202a;
-  line-height: 1.2;
-}
-
-.card-h {
-  font-family: "Liberation Serif", serif;
-  font-size: 21px;
-  font-weight: bold;
-  line-height: 1.06;
-  letter-spacing: -0.35px;
-  color: #0f0d09;
-  margin: 1px 0 3px;
-}
-
-.card-deck {
-  font-family: "Liberation Serif", serif;
-  font-size: 9.6px;
-  line-height: 1.22;
-  color: #4a453a;
-}
-
-/* ------------------------------------------------------------- 7. briefs */
-
-.briefs {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  column-gap: 12px;
-  row-gap: 0;
-  grid-auto-rows: 1fr;
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow: hidden;
-}
-
-.brief {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  overflow: hidden;
-  border-top: 1px solid #d8d1c1;
-  padding: 3px 0 2px;
-}
-
-.brief-tag {
-  font-family: "Liberation Sans", sans-serif;
-  font-size: 7.6px;
-  font-weight: bold;
-  line-height: 1.1;
-  letter-spacing: 0.85px;
-  text-transform: uppercase;
-  color: #b5202a;
-  white-space: nowrap;
-  overflow: hidden;
-  margin-bottom: 1px;
-}
-
-.brief-h {
-  font-family: "Liberation Serif", serif;
-  font-size: 11.4px;
-  font-weight: bold;
-  line-height: 1.16;
-  color: #16130e;
-  overflow: hidden;
-}
-
-/* -------------------------------------------------------------- 8. footer */
-
-.footer {
-  flex: 0 0 auto;
-  text-align: center;
-  font-family: "Liberation Sans", sans-serif;
-  font-size: 8.2px;
-  letter-spacing: 0.95px;
-  text-transform: uppercase;
-  color: #6d6656;
-  border-top: 1px solid #d8d1c1;
-  padding: 5px 0 6px;
 }
